@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金陵游 · 南京旅游攻略</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // 高德地图 JS API 2.0 安全密钥（必须在加载 SDK 前设置）
+    window._AMapSecurityConfig = { securityJsCode: 'e181d098697a87e3c6698d4dd06c8ee4' };
+  </script>
+  <script src="https://webapi.amap.com/maps?v=2.0&key=5d5b2281efeb2b43d7d40da12a7b8ec0"></script>
+</head>
+<body>
+  <!-- 顶部：印章 Logo + 标题 + 打卡进度 -->
+  <header class="site-header">
+    <div class="logo">
+      <span class="seal">金陵</span>
+      <div class="logo-text">
+        <h1>金陵游</h1>
+        <p>南京旅游攻略 · 六朝古都漫游指南</p>
+      </div>
+    </div>
+    <div class="header-progress" id="headerProgress" title="我的打卡进度"></div>
+  </header>
+
+  <!-- 导航 Tab -->
+  <nav class="tabs">
+    <button class="tab active" data-view="map"><span>🏙️</span>城市区块</button>
+    <button class="tab" data-view="attractions"><span>🎯</span>景点攻略</button>
+    <button class="tab" data-view="food"><span>🍜</span>美食探索</button>
+    <button class="tab" data-view="checkin"><span>✅</span>我的打卡</button>
+  </nav>
+
+  <main>
+    <!-- 视图 1：城市区块地图（高德地图） -->
+    <section id="view-map" class="view active">
+      <h2 class="view-title">南京城市区块</h2>
+      <div class="map-toolbar">
+        <button class="chip layer-btn active" data-layer="normal">🗺️ 标准地图</button>
+        <button class="chip layer-btn" data-layer="satellite">🛰️ 卫星地图</button>
+        <button class="chip" id="resetMapBtn">🔍 回到全城</button>
+      </div>
+      <div class="map-wrap">
+        <div id="cityMap"></div>
+      </div>
+      <div class="map-legend" id="mapLegend"></div>
+      <p class="map-hint">👆 点击区块查看该区景点 · 点击图钉看攻略、打卡 · 滚轮缩放</p>
+    </section>
+
+    <!-- 视图 2：景点攻略 -->
+    <section id="view-attractions" class="view">
+      <h2 class="view-title">景点游玩攻略</h2>
+      <div class="filter-bar" id="attractionFilter"></div>
+      <div class="cards" id="attractionList"></div>
+    </section>
+
+    <!-- 视图 3：美食探索 -->
+    <section id="view-food" class="view">
+      <h2 class="view-title">金陵美食探索</h2>
+      <div class="blindbox">
+        <div class="blindbox-display" id="blindboxDisplay">🍜</div>
+        <button class="btn-blind" id="blindboxBtn">🎲 抽一道金陵美味</button>
+        <p class="blindbox-name" id="blindboxName">点击按钮，交给命运安排今天吃什么</p>
+      </div>
+      <div class="food-filter" id="foodFilter"></div>
+      <div class="cards" id="foodList"></div>
+    </section>
+
+    <!-- 视图 4：我的打卡 -->
+    <section id="view-checkin" class="view">
+      <h2 class="view-title">我的南京足迹</h2>
+      <div class="progress-card">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <p class="progress-text" id="progressText"></p>
+      </div>
+      <div class="cards" id="checkedList"></div>
+    </section>
+  </main>
+
+  <footer>金陵游 · 一城山水一城诗</footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
