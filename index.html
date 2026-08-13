@@ -29,6 +29,7 @@
     <button class="tab active" data-view="map"><span>🏙️</span>城市区块</button>
     <button class="tab" data-view="attractions"><span>🎯</span>景点攻略</button>
     <button class="tab" data-view="food"><span>🍜</span>美食探索</button>
+    <button class="tab" data-view="route"><span>🗺️</span>路线规划</button>
     <button class="tab" data-view="checkin"><span>✅</span>我的打卡</button>
   </nav>
 
@@ -51,6 +52,9 @@
     <!-- 视图 2：景点攻略 -->
     <section id="view-attractions" class="view">
       <h2 class="view-title">景点游玩攻略</h2>
+      <div class="search-box">
+        <input type="text" id="attractionSearch" placeholder="🔍 搜索景点名称 / 关键词">
+      </div>
       <div class="filter-bar" id="attractionFilter"></div>
       <div class="cards" id="attractionList"></div>
     </section>
@@ -63,11 +67,25 @@
         <button class="btn-blind" id="blindboxBtn">🎲 抽一道金陵美味</button>
         <p class="blindbox-name" id="blindboxName">点击按钮，交给命运安排今天吃什么</p>
       </div>
+      <div class="search-box">
+        <input type="text" id="foodSearch" placeholder="🔍 搜索美食名称 / 分类">
+      </div>
       <div class="food-filter" id="foodFilter"></div>
       <div class="cards" id="foodList"></div>
     </section>
 
-    <!-- 视图 4：我的打卡 -->
+    <!-- 视图 4：路线规划 -->
+    <section id="view-route" class="view">
+      <h2 class="view-title">一日游路线规划</h2>
+      <div class="route-panel">
+        <div class="route-selector" id="routeSelector"></div>
+        <button class="btn-route" id="routeBtn">🎯 生成顺路路线</button>
+      </div>
+      <p class="map-hint" id="routeHint">从南京市中心出发，按最短距离自动串联景点，帮你排出一条少走回头路的顺路路线。</p>
+      <div id="routeResult"></div>
+    </section>
+
+    <!-- 视图 5：我的打卡 -->
     <section id="view-checkin" class="view">
       <h2 class="view-title">我的南京足迹</h2>
       <div class="progress-card">

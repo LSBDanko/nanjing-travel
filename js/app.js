@@ -5,6 +5,8 @@
 const STORAGE_KEY = 'nj_travel_checkins';
 let currentDistrictFilter = null;   // 当前景点筛选的区块 id（null = 全部）
 let currentFoodFilter = '全部';     // 当前美食筛选的分类
+let currentAttractionQuery = '';    // 景点搜索关键词
+let currentFoodQuery = '';          // 美食搜索关键词
 
 // 景点真实坐标 [经度, 纬度]（近似）
 const ATTRACTION_COORDS = {
@@ -214,6 +216,11 @@ function renderLegend() {
   ).join('');
 }
 
+/* ---------- 图片降级 ---------- */
+function imgError(img, emoji, color) {
+  img.outerHTML = `<div class="card-photo fallback" style="background:linear-gradient(135deg,${color},${color}99)"><span>${emoji}</span></div>`;
+}
+
 /* ---------- 景点攻略 ---------- */
 function renderAttractions(districtId) {
   currentDistrictFilter = districtId;
@@ -229,31 +236,51 @@ function renderAttractions(districtId) {
     filterEl.appendChild(btn);
   });
 
-  const list = ATTRACTIONS.filter(a => !districtId || a.district === districtId);
+  const q = currentAttractionQuery.trim().toLowerCase();
+  const list = ATTRACTIONS.filter(a => {
+    if (districtId && a.district !== districtId) return false;
+    if (q) {
+      const d = districtById(a.district);
+      const hay = (a.name + a.desc + (d ? d.name : '') + a.history).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
   const checked = getChecked();
   document.getElementById('attractionList').innerHTML = list.map(a => {
     const d = districtById(a.district);
     const isChecked = checked.includes(a.id);
+    const photoHtml = a.photo
+      ? `<img class="card-photo" src="${a.photo}" alt="${a.name}" loading="lazy" onerror="imgError(this,'${a.emoji}','${d.color}')">`
+      : `<div class="card-photo fallback" style="background:linear-gradient(135deg,${d.color},${d.color}99)"><span>${a.emoji}</span></div>`;
     return `
       <article class="card">
-        <div class="card-top">
-          <span class="card-emoji">${a.emoji}</span>
-          <div>
-            <div class="card-title">${a.name}</div>
-            <span class="card-district" style="background:${d.color}">${d.name}</span>
+        ${photoHtml}
+        <div class="card-body">
+          <div class="card-top">
+            <span class="card-emoji">${a.emoji}</span>
+            <div>
+              <div class="card-title">${a.name}</div>
+              <span class="card-district" style="background:${d.color}">${d.name}</span>
+            </div>
           </div>
+          <p class="card-desc">${a.desc}</p>
+          <ul class="card-meta">
+            <li><b>开放时间：</b>${a.time}</li>
+            <li><b>门票：</b>${a.ticket}</li>
+            <li><b>游玩时长：</b>${a.duration}</li>
+            <li><b>交通：</b>${a.transport}</li>
+          </ul>
+          <div class="card-history">📜 ${a.history}</div>
+          <div class="card-extra">
+            <span class="badge badge-season">🌸 ${a.season}</span>
+            <span class="badge badge-booking">🎫 ${a.booking}</span>
+          </div>
+          <p class="card-tip">💡 ${a.tip}</p>
+          <button class="btn-checkin ${isChecked ? 'checked' : ''}" data-id="${a.id}">
+            ${isChecked ? '✅ 已打卡' : '📍 打卡'}
+          </button>
         </div>
-        <p class="card-desc">${a.desc}</p>
-        <ul class="card-meta">
-          <li><b>开放时间：</b>${a.time}</li>
-          <li><b>门票：</b>${a.ticket}</li>
-          <li><b>游玩时长：</b>${a.duration}</li>
-          <li><b>交通：</b>${a.transport}</li>
-        </ul>
-        <p class="card-tip">💡 ${a.tip}</p>
-        <button class="btn-checkin ${isChecked ? 'checked' : ''}" data-id="${a.id}">
-          ${isChecked ? '✅ 已打卡' : '📍 打卡'}
-        </button>
       </article>`;
   }).join('');
 }
@@ -272,7 +299,12 @@ function renderFood() {
     filterEl.appendChild(btn);
   });
 
-  const list = FOODS.filter(f => currentFoodFilter === '全部' || f.category === currentFoodFilter);
+  const q = currentFoodQuery.trim().toLowerCase();
+  const list = FOODS.filter(f => {
+    if (currentFoodFilter !== '全部' && f.category !== currentFoodFilter) return false;
+    if (q && !(f.name + f.category + f.desc).toLowerCase().includes(q)) return false;
+    return true;
+  });
   document.getElementById('foodList').innerHTML = list.map(f => `
     <article class="card food-card">
       <div class="card-top">
@@ -346,6 +378,153 @@ function updateHeaderProgress() {
     `🎯 已打卡 ${checked.length}/${ATTRACTIONS.length}`;
 }
 
+/* ---------- 路线规划 ---------- */
+const ROUTE_START = { coord: [118.784, 32.042], name: '新街口（市中心）' };
+let routeMode = 'all';           // 'all' = 全部景点 | 'checked' = 已打卡景点
+let routePolyline = null;
+let routeMarkers = [];
+
+// 两点间直线距离（公里，Haversine）
+function distanceKm(a, b) {
+  const R = 6371;
+  const dLat = (b[1] - a[1]) * Math.PI / 180;
+  const dLng = (b[0] - a[0]) * Math.PI / 180;
+  const lat1 = a[1] * Math.PI / 180, lat2 = b[1] * Math.PI / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// 最近邻算法：从市中心出发，每次选最近的未访问景点
+function buildRoute(ids) {
+  const remaining = ids
+    .filter(id => ATTRACTION_COORDS[id])
+    .map(id => ({ id, coord: ATTRACTION_COORDS[id] }));
+  const order = [];
+  const steps = [];
+  let cur = ROUTE_START.coord;
+  let totalKm = 0;
+  while (remaining.length) {
+    let best = 0, bestDist = Infinity;
+    for (let i = 0; i < remaining.length; i++) {
+      const d = distanceKm(cur, remaining[i].coord);
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    const next = remaining.splice(best, 1)[0];
+    steps.push({ id: next.id, km: bestDist });
+    totalKm += bestDist;
+    cur = next.coord;
+    order.push(next);
+  }
+  return { order, steps, totalKm };
+}
+
+function renderRoute() {
+  const el = document.getElementById('routeSelector');
+  el.innerHTML = '';
+  [
+    { id: 'all', label: '全部景点' },
+    { id: 'checked', label: '已打卡景点' }
+  ].forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (m.id === routeMode ? ' active' : '');
+    btn.textContent = m.label;
+    btn.addEventListener('click', () => { routeMode = m.id; renderRoute(); generateRoute(); });
+    el.appendChild(btn);
+  });
+}
+
+function generateRoute() {
+  const ids = routeMode === 'checked' ? getChecked() : ATTRACTIONS.map(a => a.id);
+  const { order, steps, totalKm } = buildRoute(ids);
+  const el = document.getElementById('routeResult');
+  if (!order.length) {
+    el.innerHTML = '<p class="empty-tip">还没有可规划的景点，先去「景点攻略」打卡，或切换到「全部景点」。</p>';
+    return;
+  }
+  const html = order.map((o, i) => {
+    const a = ATTRACTIONS.find(x => x.id === o.id);
+    const d = districtById(a.district);
+    return `
+      <div class="route-step">
+        <span class="route-num">${i + 1}</span>
+        <div class="route-info">
+          <div class="route-name">${a.emoji} ${a.name} <span class="card-district" style="background:${d.color}">${d.name}</span></div>
+          <div class="route-dist">${i === 0 ? '从市中心出发' : '从上一站'} · 约 ${steps[i].km.toFixed(1)} 公里</div>
+        </div>
+      </div>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="route-summary">🗺️ 共 ${order.length} 个景点 · 累计路程约 <b>${totalKm.toFixed(1)}</b> 公里</div>
+    <button class="btn-route secondary" id="routeMapBtn">🗺️ 在地图上查看路线</button>
+    ${html}`;
+  document.getElementById('routeMapBtn').addEventListener('click', () => {
+    drawRouteOnMap(order);
+    switchTab('map');
+  });
+}
+
+function clearRouteOverlays() {
+  if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+  routeMarkers.forEach(mk => mk.setMap(null));
+  routeMarkers = [];
+}
+
+function drawRouteOnMap(order) {
+  if (!amap) return;
+  clearRouteOverlays();
+  const path = [ROUTE_START.coord, ...order.map(o => o.coord)];
+  routePolyline = new AMap.Polyline({
+    path: path,
+    strokeColor: '#C3272B',
+    strokeWeight: 5,
+    strokeOpacity: 0.9,
+    lineJoin: 'round'
+  });
+  routePolyline.setMap(amap);
+  const startMk = new AMap.Marker({
+    position: ROUTE_START.coord,
+    content: '<div class="route-start">起</div>',
+    anchor: 'center',
+    zIndex: 95
+  });
+  startMk.setMap(amap);
+  routeMarkers.push(startMk);
+  order.forEach((o, i) => {
+    const mk = new AMap.Marker({
+      position: o.coord,
+      content: `<div class="route-pin">${i + 1}</div>`,
+      anchor: 'center',
+      zIndex: 90
+    });
+    mk.setMap(amap);
+    routeMarkers.push(mk);
+  });
+  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  path.forEach(([lng, lat]) => {
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  });
+  amap.setBounds(new AMap.Bounds([minLng, minLat], [maxLng, maxLat]), false, [80, 80, 80, 80]);
+}
+
+/* ---------- 搜索 ---------- */
+function bindSearch() {
+  document.getElementById('attractionSearch').addEventListener('input', e => {
+    currentAttractionQuery = e.target.value;
+    renderAttractions(currentDistrictFilter);
+  });
+  document.getElementById('foodSearch').addEventListener('input', e => {
+    currentFoodQuery = e.target.value;
+    renderFood();
+  });
+}
+
+function bindRoute() {
+  document.getElementById('routeBtn').addEventListener('click', generateRoute);
+}
+
 /* ---------- 全局事件委托 ---------- */
 document.addEventListener('click', e => {
   const checkBtn = e.target.closest('.btn-checkin');
@@ -389,6 +568,10 @@ function init() {
   updateHeaderProgress();
   bindBlindbox();
   bindMapControls();
+  bindSearch();
+  bindRoute();
+  renderRoute();
+  generateRoute();
   initMap();
 }
 init();

@@ -200,6 +200,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 18px 24px 40px; }
   border-radius: var(--radius);
   padding: 18px 18px 16px;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
   transition: transform .18s ease, box-shadow .18s ease;
 }
 .card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
@@ -385,6 +386,149 @@ footer {
 .iw-actions .btn-goto { background: var(--cyan); }
 .iw-actions .btn-checkin { background: var(--red); }
 .iw-actions .btn-checkin.checked { background: var(--cyan); }
+
+/* ===== 搜索框 ===== */
+.search-box { margin-bottom: 14px; }
+.search-box input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--gold-light);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.search-box input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,160,99,.15);
+}
+.search-box input::placeholder { color: #b3a893; }
+
+/* ===== 景点照片 ===== */
+.card-photo {
+  display: block;
+  margin: -18px -18px 14px -18px;
+  width: calc(100% + 36px);
+  height: 170px;
+  object-fit: cover;
+  background: var(--paper);
+}
+.card-photo.fallback {
+  display: grid;
+  place-items: center;
+  font-size: 64px;
+  color: #fff;
+}
+.card-photo.fallback span { text-shadow: 0 3px 12px rgba(0,0,0,.3); }
+
+/* ===== 历史文化 ===== */
+.card-history {
+  margin: 12px 0 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #5b5348;
+  background: #F6F0E3;
+  border-left: 3px solid var(--cyan);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+/* ===== 季节 / 预约 ===== */
+.card-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  line-height: 1.4;
+}
+.badge-season { background: #FDEBEC; color: var(--red-dark); border: 1px solid #F3C6C8; }
+.badge-booking { background: #E8F2F0; color: var(--cyan); border: 1px solid #BFDCD5; }
+
+/* ===== 路线规划 ===== */
+.route-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.route-selector { display: flex; gap: 8px; }
+.btn-route {
+  padding: 12px 26px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--red), #D9555A);
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(195,39,43,.35);
+  transition: transform .15s ease, filter .15s ease;
+}
+.btn-route:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.btn-route:active { transform: scale(.97); }
+.btn-route.secondary {
+  background: linear-gradient(135deg, var(--cyan), #2A8F80);
+  box-shadow: 0 6px 16px rgba(31,122,109,.3);
+  width: 100%;
+  margin-bottom: 16px;
+}
+.route-summary {
+  background: var(--card);
+  border: 1px solid var(--gold-light);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--gray);
+  box-shadow: var(--shadow-sm);
+}
+.route-summary b { color: var(--red); }
+.route-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid rgba(201,160,99,.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-sm);
+}
+.route-num {
+  flex: none;
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), #D9555A);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  margin-top: 2px;
+}
+.route-info { flex: 1; }
+.route-name { font-size: 15px; font-weight: 700; color: var(--gray); }
+.route-dist { font-size: 12.5px; color: #8a7a6a; margin-top: 3px; }
+.route-start, .route-pin {
+  display: grid; place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+.route-start { width: 30px; height: 30px; background: #2E2A24; font-size: 14px; }
+.route-pin { width: 28px; height: 28px; background: var(--red); font-size: 13px; }
 
 /* ===== 响应式 ===== */
 @media (max-width: 640px) {
